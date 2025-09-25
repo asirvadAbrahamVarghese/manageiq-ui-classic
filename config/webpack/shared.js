@@ -6,10 +6,11 @@
 const webpack = require('webpack');
 const { basename, dirname, join, resolve } = require('path');
 const { sync } = require('glob');
-const ManifestPlugin = require('webpack-manifest-plugin');
+// FIXME: ManifestPlugin is no longer a constructor in latest webpack-manifest-plugin
+//  replaced by WebpackManifestPlugin
+const { WebpackManifestPlugin } = require('webpack-manifest-plugin');
 const extname = require('path-complete-extname');
 const DuplicatePackageCheckerPlugin = require('duplicate-package-checker-webpack-plugin');
-const { SplitChunksPlugin } = require('webpack').optimize;
 const { execSync } = require('child_process');
 
 const { env, settings, i18n, output, engines } = require('./configuration.js');
@@ -49,20 +50,23 @@ Object.keys(engines).forEach(function(k) {
 });
 
 const nodeModulesNotShims = (module) => {
-  const inNodeModules = SplitChunksPlugin.checkTest(/node_modules/, module);
-  const inShims = SplitChunksPlugin.checkTest(/shims/, module);
+  // FIXME: SplitChunksPlugin.checkTest is no longer available from webpack 5, so using regex instead
+  const inNodeModules = /node_modules/.test(module.resource);
+  const inShims = /shims/.test(module.resource);
 
   return inNodeModules && !inShims;
 };
-const notShims = (module) => (!SplitChunksPlugin.checkTest(/shims/, module));
+  // FIXME: SplitChunksPlugin.checkTest is no longer available from webpack 5, so using regex instead
+const notShims = (module) => (!(/shims/.test(module.resource)));
 
 let plugins = [
   new webpack.DefinePlugin({
     'process.env.NODE_ENV': JSON.stringify(env.NODE_ENV || 'development'),
     'process.env.CYPRESS': JSON.stringify(env.CYPRESS),
   }),
-
-  new ManifestPlugin({
+// FIXME: ManifestPlugin is no longer a constructor in latest webpack-manifest-plugin
+//  replaced by WebpackManifestPlugin
+  new WebpackManifestPlugin({
     publicPath: output.publicPath,
     writeToFileEmit: true,
   }),
@@ -134,7 +138,8 @@ module.exports = {
         default: {
           chunks: 'all',
           minChunks: 2,
-          name: 'vendor',
+          // FIXME: removing name since that causing conflicts
+          // name: 'vendor',
           priority: -20,
           reuseExistingChunk: true,
           test: notShims,
@@ -151,12 +156,35 @@ module.exports = {
       '@patternfly/patternfly-next': resolveModule('NONEXISTENT'),
       '@@ddf': resolve(dirname(__filename), '../../app/javascript/forms/data-driven-form'),
       'gettext_i18n_rails_js': gettextDir,
+      // FIXME: figure out following is required, seems not necessary
+      // Add aliases for common missing dependencies
+      // 'warning': resolveModule('warning'),
+      // 'object-assign': resolveModule('object-assign'),
+      // 'classnames': resolveModule('classnames'),
+      // '@babel/runtime-corejs2': resolveModule('@babel/runtime-corejs3'),
+      // // Add aliases for tilde imports in CSS
+      // '~c3': resolveModule('c3'),
+      // '~patternfly-bootstrap-treeview': resolveModule('patternfly-bootstrap-treeview'),
+      // '~angular-patternfly': resolveModule('angular-patternfly'),
+      // '~@manageiq/ui-components': resolveModule('@manageiq/ui-components'),
+      // '~patternfly': resolveModule('patternfly'),
     },
     extensions: settings.extensions,
-    modules: [],
+    // FIXME: modules: [] fails to locate plugins,
+    // modules: [moduleDir] is not locating peer_dependency node_modules structure
+    // modules: ['node_modules'] is a global pattern helps locate parent and peer node_modules
+    modules: ['node_modules'],
+    // modules: [],
+    // modules: [moduleDir],
     plugins: [
       new RailsEnginesPlugin('module', 'resolve', engines, moduleDir),
     ],
+    // FIXME: check if fallback is necessary seems not needed
+    // fallback: {
+    //   "path": false,
+    //   "fs": false,
+    //   "crypto": false
+    // }
   },
 
   resolveLoader: {

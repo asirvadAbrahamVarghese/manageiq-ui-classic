@@ -60,10 +60,16 @@ module.exports = merge(sharedConfig, {
   mode: 'production',
   devtool: 'source-map',
   stats: 'normal',
+  // FIXME: not sure if needed
+  optimization: {
+    minimize: true,
+  },
 
   plugins: [
     new CompressionPlugin({
       test: /\.(js|css|html|json|ico|svg|eot|otf|ttf)$/,
+  // FIXME: not sure if needed
+      algorithm: 'gzip',
     }),
 
     // Write out dependent modules list for audit purposes
