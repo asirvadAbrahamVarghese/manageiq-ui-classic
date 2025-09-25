@@ -27,18 +27,54 @@ module.exports = [
     exclude: /node_modules/,
   },
 
+  // FIXME: pdated imports-loader and then replacing query string syntax with modern object syntax
+  // {
+  //   test: require.resolve('bootstrap-datepicker'),
+  //   use: 'imports-loader?exports=>undefined,define=>undefined',
+  // },
   {
     test: require.resolve('bootstrap-datepicker'),
-    use: 'imports-loader?exports=>undefined,define=>undefined',
+    use: {
+      loader: 'imports-loader',
+      options: {
+        additionalCode: 'var exports = undefined; var define = undefined;',
+      },
+    },
   },
+  // {
+  //   test: require.resolve('bootstrap-select'),
+  //   use: 'imports-loader?module=>undefined,define=>undefined,this=>window',
+  // },
   {
     test: require.resolve('bootstrap-select'),
-    use: 'imports-loader?module=>undefined,define=>undefined,this=>window',
+    use: {
+      loader: 'imports-loader',
+      options: {
+        additionalCode: `
+        var module = undefined;
+        var define = undefined;
+        (function() { this.window = window; }).call(window);
+      `,
+      },
+    },
   },
+  // {
+  //   // matches both the actual path and the aliased one
+  //   test: /gettext_i18n_rails_js.*jed\.js/,
+  //   use: 'imports-loader?exports=>undefined,define=>undefined,this=>window',
+  // },
   {
-    // matches both the actual path and the aliased one
     test: /gettext_i18n_rails_js.*jed\.js/,
-    use: 'imports-loader?exports=>undefined,define=>undefined,this=>window',
+    use: {
+      loader: 'imports-loader',
+      options: {
+        additionalCode: `
+        var exports = undefined;
+        var define = undefined;
+        (function() { this.window = window; }).call(window);
+      `,
+      },
+    },
   },
   {
     test: /\.(jpg|jpeg|png|gif|svg|eot|ttf|woff|woff2)$/i,
@@ -51,24 +87,40 @@ module.exports = [
     }],
   },
 
+  // FIXME: Spliting loader rules since css doesnot support Sass code injections($img-base-path: '${appBasePath})
+  // will throw "Sass variables aren't allowed in plain CSS"
   {
-    test: /\.(scss|sass|css)$/i,
+    test: /\.(scss|sass)$/i,
     use: [
       'style-loader',
-      'css-loader',
+      {
+        loader: 'css-loader',
+        options: {
+          sourceMap: true,
+          importLoaders: 2,
+          // esModule: false,
+        },
+      },
       {
         loader: 'postcss-loader',
         options: {
-          sourceMap: true,
-          plugins: () => [require('autoprefixer')],
+          sourceMap: true, // plugins are configured in .postcssrc.yml so no need of postcssOptions
+          // postcssOptions: {
+          //   plugins: [
+          //     require('postcss-import'), // Add this!
+          //     require('autoprefixer'),
+          //   ],
+          // },
         },
       },
       'resolve-url-loader',
       {
         loader: 'sass-loader',
         options: {
-          prependData: () => {
-            return `$img-base-path: '${appBasePath}';`;// Path variable for login and about modal images.
+          sourceMap: true,
+          // FIXME: latest sass-loader replaced prependData with additionalData
+          additionalData: () => {
+            return `$img-base-path: '${appBasePath}';`; // Path variable for login and about modal images.
           },
           sassOptions: {
             sourceMap: true,
@@ -85,5 +137,30 @@ module.exports = [
       },
     ],
   },
-
+  {
+    test: /\.css$/i,
+    use: [
+      'style-loader',
+      {
+        loader: 'css-loader',
+        options: {
+          sourceMap: true,
+          importLoaders: 1,
+          // esModule: false,
+        },
+      },
+      {
+        loader: 'postcss-loader',
+        options: {
+          sourceMap: true,
+          // postcssOptions: {
+          //   plugins: [
+          //     require('postcss-import'), // Add this!
+          //     require('autoprefixer'),
+          //   ],
+          // },
+        },
+      },
+    ],
+  },
 ];
