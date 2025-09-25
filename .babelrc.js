@@ -17,6 +17,7 @@ module.exports = {
     require('@babel/preset-react').default,
   ],
   plugins: [
-    require('@babel/plugin-proposal-class-properties').default,
+    // FIXME: Replacing deprecated @babel/plugin-proposal-class-properties with @babel/plugin-transform-class-properties
+    require('@babel/plugin-transform-class-properties').default,
   ],
 };
