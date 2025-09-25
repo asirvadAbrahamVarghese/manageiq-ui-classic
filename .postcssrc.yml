@@ -2,3 +2,5 @@ plugins:
   postcss-import: {}
   precss: {}
   autoprefixer: {}
+  # FIXME: rails forcing to use this
+  postcss-smart-import: {}
